@@ -28,7 +28,7 @@
 #		OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-#		Taken from the gem5-x/TiC-SAT technical manuel 
+#		Taken from the gem5-x/TiC-SAT technical manual 
 
 FROM ubuntu:20.04
 
