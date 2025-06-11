@@ -72,3 +72,38 @@ RUN apt-get -y install \
 	swig=3.0.8-0ubuntu3 \
 	&& apt-get -y install diod \
 	&& apt-get -y install qemu qemu-user qemu-system qemu-user-static
+
+RUN source /opt/miniconda3/bin/activate
+RUN conda activate py275
+
+WORKDIR /home
+RUN git clone https://github.com/Gedeon23/ALPINE.git
+
+WORKDIR /home/ALPINE
+ADD full_system_images.tar.gz ./
+RUN mkdir OUTPUT
+
+ENV M5_PATH=/home/ALPINE/full_system_images
+WORKDIR /home/ALPINE/gem5-X-ALPINE
+RUN make -C system/arm/dt
+RUN scons build/ARM/gem5.fast
+RUN ./build/ARM/gem5.fast \
+	--remote-gdb-port=0 \
+	-d /home/ALPINE/OUTPUT \
+	configs/example/fs.py \
+	--cpu-clock=1GHz \
+	--kernel=vmlinux \
+	--machine-type=VExpress_GEM5_V1 \
+	--dtb-file=/home/ALPINE/gem5-X-ALPINE/system/arm/dt/armv8_gem5_v1_1cpu.dtb \
+	-n 1 \
+	--disk-image=gem5_ubuntu16.img \
+	--caches \
+	--l2cache \
+	--l1i_size=32kB \
+	--l1d_size=32kB \
+	--l2_size=1MB \
+	--l2_assoc=2 \
+	--mem-type=DDR4_2400_4x16 \
+	--mem-ranks=4 \
+	--mem-size=4GB \
+	--sys-clock=1600MHz
