@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+
+build_image() {
+  docker build . -t alpine:gem5x
+  docker run -dit --cap-add=SYS_ADMIN -p 127.0.0.1:3456:3456 --name alpine alpine:gem5x
+}
+
+
+# TODO: figure out if privileged is still necessary with 9P over Virtio
+start_image() {
+  # docker run -dit --cap-add=SYS_ADMIN -p 127.0.0.1:3456:3456 --name alpine alpine:gem5x
+  docker run -dit --privileged -p 127.0.0.1:3456:3456 --name alpine alpine:gem5x
+}
+
+
+# NOTE: right now interacting with the gem5 sim through telnet doesn't work across docker
+#       so right now I would recommend running the command from within docker
+#       and then using telnet within the container
+run() {
+  docker container start alpine
+  docker exec alpine /home/ALPINE/gem5-X-ALPINE/build/ARM/gem5.fast \
+  	--remote-gdb-port=0 \
+  	-d /home/ALPINE/OUTPUT \
+  	configs/example/fs.py \
+  	--cpu-clock=1GHz \
+  	--kernel=vmlinux \
+  	--machine-type=VExpress_GEM5_V1 \
+  	--dtb-file=/home/ALPINE/gem5-X-ALPINE/system/arm/dt/armv8_gem5_v1_1cpu.dtb \
+  	-n 1 \
+  	--disk-image=gem5_ubuntu16.img \
+  	--caches \
+  	--l2cache \
+  	--l1i_size=32kB \
+  	--l1d_size=32kB \
+  	--l2_size=1MB \
+  	--l2_assoc=2 \
+  	--mem-type=DDR4_2400_4x16 \
+  	--mem-ranks=4 \
+  	--mem-size=4GB \
+  	--sys-clock=1600MHz \
+  	--workload-automation=/home/ALPINE/SHARED
+}
+
+# TODO: doesn't work :(
+load_into_sim() {
+  path_to_file=$2
+  docker cp "$path_to_file" alpine:/home/ALPINE/SHARED/ 
+}
+
+help() {
+  cat <<EOF
+Usage: ./alpine [command]
+
+commands:
+  build_image            build the docker image from the dockerfile and run it
+  start_image            start a new container from the built image
+  run                    execute the alpine gem5-X simulator inside the docker container
+  load_to_sim [path]     copy file from provided path to the shared folder accessible to the sim
+  help                   print this help view 
+EOF
+}
+
+$1 || help
+
